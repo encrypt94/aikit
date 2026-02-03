@@ -20,6 +20,7 @@ const configStatus = document.getElementById("configStatus") as HTMLDivElement;
 const providerSelect = document.getElementById("provider") as HTMLSelectElement;
 const modelInput = document.getElementById("model") as HTMLInputElement;
 const apiKeyInput = document.getElementById("apiKey") as HTMLInputElement;
+const baseURLInput = document.getElementById("baseURL") as HTMLInputElement;
 const toolsPanel = document.querySelector(".tools-panel") as HTMLDivElement;
 const toolsHeader = document.getElementById("toolsHeader") as HTMLHeadingElement;
 const toolsList = document.getElementById("toolsList") as HTMLDivElement;
@@ -56,6 +57,8 @@ settingsBtn.addEventListener("click", () => {
   configPanel.classList.toggle("hidden");
 });
 
+providerSelect.addEventListener("change", updateBaseURLVisibility);
+
 toolsHeader.addEventListener("click", () => {
   toolsPanel.classList.toggle("collapsed");
   const isCollapsed = toolsPanel.classList.contains("collapsed");
@@ -71,20 +74,32 @@ async function loadToolsPanelState() {
 
 loadToolsPanelState();
 
+function updateBaseURLVisibility() {
+  const baseURLGroup = baseURLInput.parentElement as HTMLElement;
+  if (providerSelect.value === "openai") {
+    baseURLGroup.style.display = "block";
+  } else {
+    baseURLGroup.style.display = "none";
+  }
+}
+
 async function loadConfig() {
-  const config = await browser.storage.local.get(["provider", "model", "apiKey"]);
+  const config = await browser.storage.local.get(["provider", "model", "apiKey", "baseURL"]);
   if (config.provider) providerSelect.value = config.provider;
   if (config.model) modelInput.value = config.model;
+  if (config.baseURL) baseURLInput.value = config.baseURL;
   if (config.apiKey) {
     apiKeyInput.value = config.apiKey;
     await initializeAgent();
   }
+  updateBaseURLVisibility();
 }
 
 saveConfigBtn.addEventListener("click", async () => {
   const provider = providerSelect.value;
   const model = modelInput.value.trim();
   const apiKey = apiKeyInput.value.trim();
+  const baseURL = baseURLInput.value.trim();
 
   if (!apiKey) {
     showStatus("Please enter an API key", "error");
@@ -96,7 +111,7 @@ saveConfigBtn.addEventListener("click", async () => {
     return;
   }
 
-  await browser.storage.local.set({ provider, model, apiKey });
+  await browser.storage.local.set({ provider, model, apiKey, baseURL });
 
   showStatus("Initializing agent...", "success");
 
@@ -112,15 +127,21 @@ saveConfigBtn.addEventListener("click", async () => {
 });
 
 async function initializeAgent() {
-  const config = await browser.storage.local.get(["provider", "model", "apiKey"]);
+  const config = await browser.storage.local.get(["provider", "model", "apiKey", "baseURL"]);
 
   try {
-    const response = await browser.runtime.sendMessage({
+    const message: any = {
       type: "INIT_AGENT",
       provider: config.provider || "anthropic",
       model: config.model || "claude-sonnet-4-20250514",
       apiKey: config.apiKey
-    });
+    };
+
+    if (config.provider === "openai" && config.baseURL) {
+      message.baseURL = config.baseURL;
+    }
+
+    const response = await browser.runtime.sendMessage(message);
 
     if (response) {
       isAgentInitialized = true;

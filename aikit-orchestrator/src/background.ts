@@ -92,9 +92,9 @@ class ToolRegistry {
     return tools;
   }
 
-  async initializeAdapter(apiKey: string, provider: string = "anthropic", model: string = "claude-sonnet-4-20250514") {
+  async initializeAdapter(apiKey: string, provider: string = "anthropic", model: string = "claude-sonnet-4-20250514", baseURL?: string) {
     try {
-      this.adapter = createAdapter(provider, apiKey, model);
+      this.adapter = createAdapter(provider, apiKey, model, baseURL);
       console.log("AI adapter initialized successfully");
       return true;
     } catch (error) {
@@ -395,7 +395,8 @@ browser.runtime.onMessage.addListener((message: any, sender) => {
         return toolRegistry.initializeAdapter(
           message.apiKey,
           message.provider,
-          message.model
+          message.model,
+          message.baseURL
         );
       }
       return Promise.resolve({ success: false, error: "Missing parameters" });

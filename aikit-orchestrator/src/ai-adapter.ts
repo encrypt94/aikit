@@ -119,10 +119,11 @@ export class OpenAIAdapter implements AIAdapter {
   private model: string;
   private toolNameMap: Map<string, string> = new Map();
 
-  constructor(apiKey: string, model: string = "gpt-4") {
+  constructor(apiKey: string, model: string = "gpt-4", baseURL?: string) {
     this.client = new OpenAI({
       apiKey,
-      dangerouslyAllowBrowser: true
+      dangerouslyAllowBrowser: true,
+      ...(baseURL && { baseURL })
     });
     this.model = model;
   }
@@ -307,12 +308,12 @@ export class GoogleAdapter implements AIAdapter {
   }
 }
 
-export function createAdapter(provider: string, apiKey: string, model?: string): AIAdapter {
+export function createAdapter(provider: string, apiKey: string, model?: string, baseURL?: string): AIAdapter {
   switch (provider) {
     case "anthropic":
       return new AnthropicAdapter(apiKey);
     case "openai":
-      return new OpenAIAdapter(apiKey, model);
+      return new OpenAIAdapter(apiKey, model, baseURL);
     case "google":
       return new GoogleAdapter(apiKey, model);
     default:
